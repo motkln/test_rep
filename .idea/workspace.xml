@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="29ed168e-5893-429e-9816-cf322fc8d849" name="Changes" comment="hello world!)">
+    <list default="true" id="29ed168e-5893-429e-9816-cf322fc8d849" name="Changes" comment="Добавил gitignore, а в него папку idea">
       <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,12 +92,29 @@
       <option name="project" value="LOCAL" />
       <updated>1743882208755</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Добавил gitignore, а в него папку idea">
+      <option name="closed" value="true" />
+      <created>1743882839075</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1743882839075</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Добавил gitignore, а в него папку idea">
+      <option name="closed" value="true" />
+      <created>1743883015657</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1743883015657</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="hello world!)" />
-    <option name="LAST_COMMIT_MESSAGE" value="hello world!)" />
+    <MESSAGE value="Добавил gitignore, а в него папку idea" />
+    <option name="LAST_COMMIT_MESSAGE" value="Добавил gitignore, а в него папку idea" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
