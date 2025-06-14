@@ -1,8 +1,10 @@
 import random
-from collections import Counter
-from collections import namedtuple
-from collections import defaultdict
-from collections import deque
+from collections import (
+Counter,
+namedtuple,
+defaultdict,
+deque)
+
 
 
 def get_random_list(lenght):
