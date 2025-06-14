@@ -20,8 +20,6 @@ class Data_store:
         self.save_data()
 
     def save_data(self):
-        # with open('data_base_users', 'w', encoding="utf-8") as f:
-        #     json.dump(data_base_users, f, indent=4)
         with open(os.getcwd()+'\\telegram_bot\\data_base_records.json', 'w', encoding="utf-8") as f1:
             data = deepcopy(data_base_records.get_list())
             for each in data:
@@ -33,7 +31,6 @@ class Data_store:
         if (os.path.exists(os.getcwd()+'\\telegram_bot\\data_base_records.json')
                 and os.path.getsize(os.getcwd()+'\\telegram_bot\\data_base_records.json') > 0):
             with open(os.getcwd()+'\\telegram_bot\\data_base_records.json', 'r', encoding="utf-8") as f1:
-                # self.data_base_records = json.load(f1)
                 data = json.load(f1)
                 for each in data:
                     each['start_sleep_time'] = datetime.datetime.strptime(each['start_sleep_time'], '%d %B %Y, %H:%M:%S')
@@ -42,10 +39,8 @@ class Data_store:
 
         else:
             print("Файл пуст или не существует.")
-            self.data_base_records = []  # Или инициализируйте пустой список
-        #
-        # with open(os.getcwd()+'\\telegram_bot\\data_base_records.json', 'r', encoding="utf-8") as f1:
-        #     self.data_base_records = json.load(f1)
+            self.data_base_records = []
+
 
 
 
