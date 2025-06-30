@@ -2,8 +2,6 @@ import telebot
 from telebot import types
 import os
 import datetime
-import json
-from copy import deepcopy
 import sqlite3
 from sqlite3 import connect
 
@@ -16,7 +14,9 @@ class Data_Access_Object:
         self.conn = self.get_connection()
         if self.conn:
             self.cursor = self.conn.cursor()
-            self.make_bot_db()
+            self.make_users_db()
+            self.make_data_db()
+            self.make_notes_db()
 
     def get_connection(self):
         try:
@@ -26,75 +26,100 @@ class Data_Access_Object:
             return 0
 
     def show_all(self, user_id):
-        res = self.cursor.execute('''select user_id,start_sleep_time,wake_time,quality,notes 
-                                    from bot_db where user_id = ?''', (user_id,)).fetchall()
+        res = self.cursor.execute('''select sr.user_id,sr.start_sleep_time,sr.wake_time,sr.quality,n.note 
+                                    from sleep_records sr 
+                                    join users u on u.id = sr.user_id
+                                    join notes n on n.sleep_record_id = sr.id   
+                                    where sr.user_id = ?''', (user_id,)).fetchall()
         return res
 
-    def make_bot_db(self):
-        return self.cursor.execute('''Create table if not exists bot_db(
+    def make_data_db(self):
+        try:
+            self.cursor.execute('''Create table if not exists sleep_records(
         id integer primary key AUTOINCREMENT not null,
         user_id integer not null,
         start_sleep_time DATA,
         wake_time DATA,
         quality Integer,
-        notes TEXT)''')
+        foreign key (user_id) references users (id));''')
+            self.conn.commit()
+        except Exception as e:
+            print(e)
+        finally:
+            return 0
 
-    # def update_record(self, user_id=None, start_sleep=None, wake_time=None, quality=None, notes=None):
-    #     if user_id is not None:
-    #         self.cursor.execute('''Update bot_db set user_id = ?;''', (user_id,))
-    #     if start_sleep is not None:
-    #         self.cursor.execute('''Update bot_db set start_sleep_time = ? where user_id = ?;''', (start_sleep, user_id))
-    #     if wake_time is not None:
-    #         self.cursor.execute('''Update bot_db set wake_time = ? where user_id = ?;''', (wake_time, user_id))
-    #     if quality is not None:
-    #         self.cursor.execute('''Update bot_db set quality = ? where user_id = ?;''', (quality, user_id))
-    #     if notes is not None:
-    #         self.cursor.execute('''Update bot_db set notes = ? where user_id = ?;''', (notes, user_id))
+    def make_users_db(self):
+        try:
+            self.cursor.execute('''Create table if not exists users(
+        id integer primary key not null,
+        name TEXT not null)''')
+            self.conn.commit()
+        except Exception as e:
+            print(e)
+        finally:
+            return 0
 
-    # self.conn.commit()
+    def make_notes_db(self):
+        try:
+            self.cursor.execute('''Create table if not exists notes(
+        id integer primary key AUTOINCREMENT not null,
+        note Text,
+        sleep_record_id integer not null,
+        foreign key (sleep_record_id) references sleep_records (id));''')
+            self.conn.commit()
+        except Exception as e:
+            print(e)
+        finally:
+            return 0
 
-    def edit_note(self, notes=None, id=None, mode=None):
-        if mode == 0:
-            self.cursor.execute('''Update bot_db set notes = notes || ? where id = ?;''', (notes, id))
-        elif mode == 1:
-            self.cursor.execute('''Update bot_db set notes = ? where id = ?;''', (notes, id))
+    def add_note(self, id=None, notes=None):
+        self.cursor.execute('''insert into notes (sleep_record_id,note);''', (id, notes))
         self.conn.commit()
 
-    def add_record(self, user_id=None, start_sleep=None, wake_time=None, quality=None, notes=None):
+    def edit_note(self, notes=None, id=None, start_sleep=None, mode=None):
+        if mode == 0:
+            self.cursor.execute('''Update notes set note = note || ? where sleep_record_id = ?;''', (notes, id))
+        elif mode == 1:
+            self.cursor.execute('''Update notes set note = ? where sleep_record_id = ?;''', (notes, id))
+        self.conn.commit()
+
+    def add_record_user(self, id, name):
+        try:
+            self.cursor.execute(
+                '''insert into users (id,name) values (?,?)''',
+                (id, name))
+            self.conn.commit()
+        except Exception as e:
+            print(e)
+        return 0
+
+    def add_record_data(self, user_id=None, start_sleep=None, wake_time=None, quality=None, notes=None):
         self.cursor.execute(
-            '''insert into bot_db (user_id,start_sleep_time,wake_time,quality,notes) values (?,?,?,?,?)''',
-            (user_id, start_sleep, wake_time, quality, notes))
+            '''insert into sleep_records (user_id,start_sleep_time,wake_time,quality) values (?,?,?,?)''',
+            (user_id, start_sleep, wake_time, quality))
+        sleep_record_id = self.find_record(user_id=user_id, start_sleep=start_sleep, wake_time=wake_time,
+                                           quality=quality)
+        self.cursor.execute(
+            '''insert into notes (note,sleep_record_id) values (?,?)''', (notes, sleep_record_id))
         self.conn.commit()
         return 0
 
-    def find_record(self, user_id=None, start_sleep=None, wake_time=None, quality=None, notes=None):
+    def find_record(self, user_id=None, start_sleep=None, wake_time=None, quality=None):
         return self.cursor.execute(
-            '''select id from bot_db where user_id = ? 
-                                            and start_sleep_time = ? 
-                                            and wake_time = ? 
-                                            and quality = ? 
-                                            and notes = ?;''',
-            (user_id, start_sleep, wake_time, quality, notes)).fetchone()[0]
+            '''select id from sleep_records where user_id = ? and start_sleep_time = ?;''',
+            (user_id, start_sleep)).fetchone()[0]
 
     def find_note(self, id=None):
-        return self.cursor.execute('''select notes from bot_db where id = ?;''', (id,)).fetchone()[0]
+        return self.cursor.execute('''select note from notes where sleep_record_id = ?;''', (id,)).fetchone()[0]
 
     def edit_quality(self, quality=None, id=None):
-        self.cursor.execute('''Update bot_db set quality = ? where id = ?;''', (quality, id))
+        self.cursor.execute('''Update sleep_records set quality = ? where id = ?;''', (quality, id))
         self.conn.commit()
 
 
 data_base_users = {}
 
 data_base_records = Data_Access_Object()
-
-
-# def check_forget(message, id):
-#     if data_base_users.get(id).get('start_sleep_time') - data_base_users.get(id).get('wake_time') > datetime.timedelta(
-#             hours=16):
-#         bot.send_message(message.chat.id,
-#                          "Похоже вы забыли записать ваш подъем в прошлый раз! Прошлый день не будет учитываться")
-#         return 0
 
 
 def add_keyboard():
@@ -121,7 +146,7 @@ def add_record_db(id, sleep_time=None, wake_time=None, quality_value=None, input
     input_info = {'start_sleep_time': sleep_time, 'wake_time': wake_time, 'quality': quality_value,
                   'notes': input_note}
     data_base_users[id] = input_info
-    # data_base_records.add_record(id, sleep_time, wake_time, quality_value, input_note)
+
 
 
 @bot.message_handler()
@@ -137,6 +162,7 @@ def give_answ(message):
                          '\n/edit_quality -   Чтобы редактировать заметку'
                          '\n/show -   Чтобы показать заметки',
                          reply_markup=add_keyboard())
+        data_base_records.add_record_user(message.chat.id, message.from_user.first_name)
         add_record_db(message.from_user.id)
 
     try:
@@ -168,25 +194,21 @@ def give_answ(message):
         if data_base_users.get(message.from_user.id)['wake_time'] == None:
             if data_base_users.get(message.from_user.id)['start_sleep_time'] != None:
                 data_base_users.get(message.from_user.id)['wake_time'] = now
-
-                # data_base_records.update_record(message.from_user.id,
-                #                                 wake_time=data_base_users.get(message.from_user.id)['wake_time'])
                 data_base_users.get(message.from_user.id)['notes'] += ' По ' + str(
                     datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S") + "\n")
-                # data_base_records.update_record(message.from_user.id,
-                #                                 notes=data_base_users.get(message.from_user.id)['notes'])
+
                 bot.send_message(message.chat.id,
                                  f'Доброе утро!\nВы спали: {count_sleeping_time(message.from_user.id)}')
                 data_base_users.get(message.from_user.id)['quality'] = str('-')
-                # data_base_records.update_record(message.from_user.id,
-                #                                 quality=data_base_users.get(message.from_user.id)['quality'])
+
                 copy_data = data_base_users.get(message.chat.id).copy()
                 copy_data['id'] = message.chat.id
-                data_base_records.add_record(message.from_user.id,
-                                             start_sleep=data_base_users.get(message.from_user.id)['start_sleep_time'],
-                                             wake_time=data_base_users.get(message.from_user.id)['wake_time'],
-                                             notes=data_base_users.get(message.from_user.id)['notes'],
-                                             quality=data_base_users.get(message.from_user.id)['quality'])
+                data_base_records.add_record_data(message.from_user.id,
+                                                  start_sleep=data_base_users.get(message.from_user.id)[
+                                                      'start_sleep_time'],
+                                                  wake_time=data_base_users.get(message.from_user.id)['wake_time'],
+                                                  quality=data_base_users.get(message.from_user.id)['quality'],
+                                                  notes=data_base_users.get(message.from_user.id)['notes'])
             else:
                 bot.send_message(message.chat.id, 'Записей пока нет.')
         else:
@@ -213,7 +235,7 @@ def give_quality(message, number_of_note, founded_elements):
         quality = message.text
         for record in data_base_records.show_all(message.chat.id):
             if record == founded_elements[number_of_note]:
-                id = data_base_records.find_record(*record)
+                id = data_base_records.find_record(record[0], record[1])
                 data_base_records.edit_quality(quality=quality, id=id)
                 bot.send_message(message.chat.id, "Качество сна добавлено!", reply_markup=add_keyboard())
     except ValueError:
@@ -251,8 +273,8 @@ def add_note(message, number_of_note, founded_elements):
         for record in data_base_records.show_all(message.chat.id):
             if record == founded_elements[number_of_note]:
                 print(record)
-                id_record = data_base_records.find_record(*record)
-                data_base_records.edit_note(id=id_record, notes=add_str, mode=0)
+                id_record = data_base_records.find_record(record[0], record[1])
+                data_base_records.edit_note(id=id_record, notes=add_str,start_sleep=record[1], mode=0)
                 bot.send_message(message.chat.id, "Заметка успешно добавлена!", reply_markup=add_keyboard())
     else:
         bot.send_message(message.chat.id, "Похоже ты ввел не верный номер заметки, попробуй еще раз")
@@ -263,7 +285,7 @@ def edit_note(message, number_of_note, founded_elements):
     if number_of_note <= len(data_base_records.show_all(message.chat.id)):
         for record in data_base_records.show_all(message.chat.id):
             if record == founded_elements[number_of_note]:
-                id_record = data_base_records.find_record(*record)
+                id_record = data_base_records.find_record(record[0],record[1])
                 exist_note = data_base_records.find_note(id_record)
                 new_note = exist_note[:exist_note.rfind("Заметка:")] + "Заметка: " + note
                 data_base_records.edit_note(notes=new_note, id=id_record, mode=1)
@@ -308,5 +330,4 @@ def show_notes(message, mode):
     bot.register_next_step_handler(message, get_number_notes, mode, founded_elements)
 
 
-# data_base_records.load_data()
 bot.polling(none_stop=True, interval=0)
