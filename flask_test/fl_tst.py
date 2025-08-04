@@ -8,8 +8,10 @@ def get_repos(username):
     if response.status_code == 200:
         res = response.json()
         return res
-    else:
-        raise Exception(f'Код ошибки: {response.status_code}')
+    elif response.status_code == 404:
+        raise Exception(f'Код ошибки: {response.status_code}, пользователь не найден')
+    elif response.status_code == 403:
+        raise Exception(f'Код ошибки: {response.status_code}, превышен лимит запросов')
 
 
 def analyze_repos(repos):
@@ -41,8 +43,6 @@ def main():
             print(analyz_autobahn_api(result))
 
 
-
-
 def autobahn_api():
     url = 'https://verkehr.autobahn.de/o/autobahn/A1/services/electric_charging_station'
     response = requests.get(url)
@@ -60,6 +60,7 @@ def analyz_autobahn_api(response):
 ------------------------------------------------------------
 Количество зарядных станций на дороге - {quantity}
 Название зарядной станции, ее координаты  - {coordinates}"""
+
 
 if __name__ == '__main__':
     main()
